@@ -1,0 +1,46 @@
+load("@llvm-project//mlir:tblgen.bzl", "gentbl_cc_library", "td_library")
+load("//common:test.bzl", "dialect_registered_test")
+
+td_library(
+    name = "CalcDialectTdFiles",
+    srcs = ["CalcDialect.td"],
+    deps = ["@llvm-project//mlir:OpBaseTdFiles"],
+)
+
+gentbl_cc_library(
+    name = "CalcDialectIncGen",
+    strip_include_prefix = ".",
+    tbl_outs = [
+        (["-gen-dialect-decls"], "CalcDialect.h.inc"),
+        (["-gen-dialect-defs"], "CalcDialect.cpp.inc"),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "CalcDialect.td",
+    deps = [":CalcDialectTdFiles"],
+)
+
+cc_library(
+    name = "CalcDialect",
+    srcs = ["CalcDialect.cpp"],
+    hdrs = ["CalcDialect.h"],
+    deps = [
+        ":CalcDialectIncGen",
+        "@llvm-project//mlir:IR",
+    ],
+)
+
+cc_binary(
+    name = "calc-opt",
+    srcs = ["calc_opt.cpp"],
+    deps = [
+        ":CalcDialect",
+        "@llvm-project//mlir:AllPassesAndDialects",
+        "@llvm-project//mlir:MlirOptLib",
+    ],
+)
+
+dialect_registered_test(
+    name = "calc_dialect_registered_test",
+    calc_opt = ":calc-opt",
+    dialect_name = "calc",
+)

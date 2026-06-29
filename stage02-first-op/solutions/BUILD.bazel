@@ -1,0 +1,68 @@
+load("@llvm-project//mlir:tblgen.bzl", "gentbl_cc_library", "td_library")
+load("//common:test.bzl", "mlir_filecheck_test")
+
+td_library(
+    name = "CalcDialectTdFiles",
+    srcs = ["CalcDialect.td"],
+    deps = [
+        "@llvm-project//mlir:OpBaseTdFiles",
+        "@llvm-project//mlir:SideEffectInterfacesTdFiles",
+    ],
+)
+
+# Dialect skeleton (class declaration + definition).
+gentbl_cc_library(
+    name = "CalcDialectIncGen",
+    strip_include_prefix = ".",
+    tbl_outs = [
+        (["-gen-dialect-decls"], "CalcDialect.h.inc"),
+        (["-gen-dialect-defs"], "CalcDialect.cpp.inc"),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "CalcDialect.td",
+    deps = [":CalcDialectTdFiles"],
+)
+
+# Op class declarations and definitions (one per op in the .td file).
+# Output filename is CalcOps.*.inc because that's a common convention,
+# even though our ops are declared in the same .td as the dialect.
+gentbl_cc_library(
+    name = "CalcOpsIncGen",
+    strip_include_prefix = ".",
+    tbl_outs = [
+        (["-gen-op-decls"], "CalcOps.h.inc"),
+        (["-gen-op-defs"], "CalcOps.cpp.inc"),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "CalcDialect.td",
+    deps = [":CalcDialectTdFiles"],
+)
+
+cc_library(
+    name = "CalcDialect",
+    srcs = ["CalcDialect.cpp"],
+    hdrs = ["CalcDialect.h"],
+    deps = [
+        ":CalcDialectIncGen",
+        ":CalcOpsIncGen",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:SideEffectInterfaces",
+    ],
+)
+
+cc_binary(
+    name = "calc-opt",
+    srcs = ["calc_opt.cpp"],
+    deps = [
+        ":CalcDialect",
+        "@llvm-project//mlir:AllPassesAndDialects",
+        "@llvm-project//mlir:MlirOptLib",
+    ],
+)
+
+# Round-trip test: parse, print, FileCheck.
+mlir_filecheck_test(
+    name = "round_trip_test",
+    src = "round_trip.mlir",
+    mlir_opt = ":calc-opt",
+)

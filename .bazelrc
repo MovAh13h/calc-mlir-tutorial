@@ -1,0 +1,7 @@
+# LLVM 17 BCR module's BUILD files contain globs over directories that no
+# longer exist (e.g. lib/Bytecode/Reader/). Modern Bazel rejects empty globs
+# by default; this flag restores the legacy permissive behavior.
+common --incompatible_disallow_empty_glob=false
+
+# MLIR/LLVM is written in C++17.
+build --cxxopt=-std=c++17 --host_cxxopt=-std=c++17

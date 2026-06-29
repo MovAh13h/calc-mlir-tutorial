@@ -1,0 +1,52 @@
+load("@llvm-project//mlir:tblgen.bzl", "gentbl_cc_library", "td_library")
+load("//common:test.bzl", "dialect_registered_test")
+
+# The .td files this dialect uses (and depends on).
+td_library(
+    name = "CalcDialectTdFiles",
+    srcs = ["CalcDialect.td"],
+    deps = ["@llvm-project//mlir:OpBaseTdFiles"],
+)
+
+# Runs mlir-tblgen on CalcDialect.td and produces two generated files
+# (CalcDialect.h.inc and CalcDialect.cpp.inc), exposed as a cc_library.
+gentbl_cc_library(
+    name = "CalcDialectIncGen",
+    strip_include_prefix = ".",
+    tbl_outs = [
+        (["-gen-dialect-decls"], "CalcDialect.h.inc"),
+        (["-gen-dialect-defs"], "CalcDialect.cpp.inc"),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "CalcDialect.td",
+    deps = [":CalcDialectTdFiles"],
+)
+
+# Our dialect's hand-written C++ glue, plus the generated headers.
+cc_library(
+    name = "CalcDialect",
+    srcs = ["CalcDialect.cpp"],
+    hdrs = ["CalcDialect.h"],
+    deps = [
+        ":CalcDialectIncGen",
+        "@llvm-project//mlir:IR",
+    ],
+)
+
+# Our custom mlir-opt driver, with the calc dialect registered.
+cc_binary(
+    name = "calc-opt",
+    srcs = ["calc_opt.cpp"],
+    deps = [
+        ":CalcDialect",
+        "@llvm-project//mlir:AllPassesAndDialects",
+        "@llvm-project//mlir:MlirOptLib",
+    ],
+)
+
+# Test: `calc-opt --show-dialects` must list `calc`.
+dialect_registered_test(
+    name = "calc_dialect_registered_test",
+    calc_opt = ":calc-opt",
+    dialect_name = "calc",
+)

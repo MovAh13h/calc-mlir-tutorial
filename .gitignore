@@ -1,0 +1,9 @@
+bazel-bin
+bazel-mlir-tutorial
+bazel-out
+bazel-testlogs
+.zed
+.claude
+compile_commands.json
+external/
+.cache/

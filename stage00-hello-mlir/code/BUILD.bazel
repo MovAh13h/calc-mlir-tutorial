@@ -1,0 +1,6 @@
+load("//common:test.bzl", "mlir_filecheck_test")
+
+mlir_filecheck_test(
+    name = "hello_test",
+    src = "hello.mlir",
+)
