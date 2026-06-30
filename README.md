@@ -47,11 +47,11 @@ around. (Stage `N`'s `code/` is roughly equivalent to stage `N-1`'s
 | 05 | [Verifiers](stage05-verifiers/) | `calc.shr` with `hasVerifier`, custom `verify()`, `--verify-diagnostics` |
 | 06 | [Canonicalization with DRR](stage06-canonicalization/) | Declarative rewrite patterns: `x+0→x`, `x*1→x`, `x*0→0` |
 | 07 | [Fold methods](stage07-folders/) | `hasFolder`, `ConstantLike`, `materializeConstant`; `1+2→3`, chained folds |
-| 08 | A custom pass | Walking IR, pass registration, running with `mlir-opt` |
-| 09 | Conversion to `arith` | `ConversionTarget`, type converters, partial vs full conversion |
-| 10 | Conversion to LLVM dialect | Lowering to LLVM dialect, `mlir-translate` to LLVM IR |
-| 11 | End-to-end execution | `.mlir` → JIT via `mlir-cpu-runner`; `calc.print` via `printf` |
-| 12 | *(optional)* Custom type | Fixed-point `calc.fixed<int,frac>` capstone |
+| 08 | [Custom pass](stage08-custom-pass/) | ODS pass declarations, `OpRewritePattern`, `--calc-strength-reduce` |
+| 09 | [Conversion to `arith`](stage09-arith-conversion/) | `ConversionTarget`, `OpConversionPattern`, partial conversion |
+| 10 | [Conversion to LLVM dialect](stage10-llvm-conversion/) | LLVM dialect, printf prelude, full lowering pipeline |
+| 11 | [End-to-end execution](stage11-jit-execution/) | `mlir-cpu-runner` JIT, stdout-driven FileCheck |
+| 12 | [Custom type](stage12-custom-type/) *(capstone)* | `TypeDef`, parameterised type, type-level verifier |
 
 ## Build system
 

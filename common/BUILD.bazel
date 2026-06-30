@@ -4,4 +4,5 @@ exports_files([
     "run_filecheck.sh",
     "check_dialect_registered.sh",
     "run_verify_diagnostics.sh",
+    "run_jit.sh",
 ])

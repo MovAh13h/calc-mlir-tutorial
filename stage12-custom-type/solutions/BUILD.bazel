@@ -1,0 +1,226 @@
+load("@llvm-project//mlir:tblgen.bzl", "gentbl_cc_library", "td_library")
+load(
+    "//common:test.bzl",
+    "mlir_filecheck_test",
+    "mlir_jit_test",
+    "mlir_verify_diagnostics_test",
+)
+
+td_library(
+    name = "CalcDialectTdFiles",
+    srcs = [
+        "CalcDialect.td",
+        "CalcPatterns.td",
+    ],
+    deps = [
+        "@llvm-project//mlir:BuiltinDialectTdFiles",
+        "@llvm-project//mlir:InferTypeOpInterfaceTdFiles",
+        "@llvm-project//mlir:OpBaseTdFiles",
+        "@llvm-project//mlir:SideEffectInterfacesTdFiles",
+    ],
+)
+
+gentbl_cc_library(
+    name = "CalcDialectIncGen",
+    strip_include_prefix = ".",
+    tbl_outs = [
+        (["-gen-dialect-decls"], "CalcDialect.h.inc"),
+        (["-gen-dialect-defs"], "CalcDialect.cpp.inc"),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "CalcDialect.td",
+    deps = [":CalcDialectTdFiles"],
+)
+
+gentbl_cc_library(
+    name = "CalcOpsIncGen",
+    strip_include_prefix = ".",
+    tbl_outs = [
+        (["-gen-op-decls"], "CalcOps.h.inc"),
+        (["-gen-op-defs"], "CalcOps.cpp.inc"),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "CalcDialect.td",
+    deps = [":CalcDialectTdFiles"],
+)
+
+# Type defs — generates CalcTypes.h.inc / .cpp.inc with the FixedType
+# class, accessors (getIntBits/getFracBits), parser, and printer.
+gentbl_cc_library(
+    name = "CalcTypesIncGen",
+    strip_include_prefix = ".",
+    tbl_outs = [
+        (["-gen-typedef-decls"], "CalcTypes.h.inc"),
+        (["-gen-typedef-defs"], "CalcTypes.cpp.inc"),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "CalcDialect.td",
+    deps = [":CalcDialectTdFiles"],
+)
+
+gentbl_cc_library(
+    name = "CalcCanonicalizeIncGen",
+    strip_include_prefix = ".",
+    tbl_outs = [
+        (["-gen-rewriters"], "CalcCanonicalize.inc"),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "CalcPatterns.td",
+    deps = [":CalcDialectTdFiles"],
+)
+
+gentbl_cc_library(
+    name = "CalcPassesIncGen",
+    strip_include_prefix = ".",
+    tbl_outs = [
+        (
+            [
+                "-gen-pass-decls",
+                "-name=Calc",
+            ],
+            "CalcPasses.h.inc",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "CalcPasses.td",
+    deps = ["@llvm-project//mlir:PassBaseTdFiles"],
+)
+
+cc_library(
+    name = "CalcDialect",
+    srcs = ["CalcDialect.cpp"],
+    hdrs = ["CalcDialect.h"],
+    deps = [
+        ":CalcCanonicalizeIncGen",
+        ":CalcDialectIncGen",
+        ":CalcOpsIncGen",
+        ":CalcTypesIncGen",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:InferTypeOpInterface",
+        "@llvm-project//mlir:SideEffectInterfaces",
+    ],
+)
+
+cc_library(
+    name = "CalcPasses",
+    srcs = ["CalcPasses.cpp"],
+    hdrs = ["CalcPasses.h"],
+    deps = [
+        ":CalcDialect",
+        ":CalcPassesIncGen",
+        "@llvm-project//mlir:ArithDialect",
+        "@llvm-project//mlir:FuncDialect",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:LLVMDialect",
+        "@llvm-project//mlir:Pass",
+        "@llvm-project//mlir:TransformUtils",
+    ],
+)
+
+cc_binary(
+    name = "calc-opt",
+    srcs = ["calc_opt.cpp"],
+    deps = [
+        ":CalcDialect",
+        ":CalcPasses",
+        "@llvm-project//mlir:AllPassesAndDialects",
+        "@llvm-project//mlir:MlirOptLib",
+    ],
+)
+
+mlir_filecheck_test(
+    name = "round_trip_test",
+    src = "round_trip.mlir",
+    mlir_opt = ":calc-opt",
+)
+
+mlir_filecheck_test(
+    name = "dce_test",
+    src = "dce.mlir",
+    mlir_opt = ":calc-opt",
+    mlir_opt_args = ["--canonicalize"],
+)
+
+mlir_verify_diagnostics_test(
+    name = "verify_test",
+    src = "verify.mlir",
+    mlir_opt = ":calc-opt",
+)
+
+mlir_filecheck_test(
+    name = "canonicalize_test",
+    src = "canonicalize.mlir",
+    mlir_opt = ":calc-opt",
+    mlir_opt_args = ["--canonicalize"],
+)
+
+mlir_filecheck_test(
+    name = "fold_test",
+    src = "fold.mlir",
+    mlir_opt = ":calc-opt",
+    mlir_opt_args = ["--canonicalize"],
+)
+
+mlir_filecheck_test(
+    name = "strength_reduce_test",
+    src = "strength_reduce.mlir",
+    mlir_opt = ":calc-opt",
+    mlir_opt_args = ["--calc-strength-reduce"],
+)
+
+mlir_filecheck_test(
+    name = "calc_to_arith_test",
+    src = "calc_to_arith.mlir",
+    mlir_opt = ":calc-opt",
+    mlir_opt_args = ["--calc-to-arith"],
+)
+
+mlir_filecheck_test(
+    name = "print_to_llvm_test",
+    src = "print_to_llvm.mlir",
+    mlir_opt = ":calc-opt",
+    mlir_opt_args = ["--calc-print-to-llvm"],
+)
+
+mlir_filecheck_test(
+    name = "full_pipeline_test",
+    src = "full_pipeline.mlir",
+    mlir_opt = ":calc-opt",
+    mlir_opt_args = [
+        "--calc-to-arith",
+        "--calc-print-to-llvm",
+        "--convert-arith-to-llvm",
+        "--convert-func-to-llvm",
+        "--reconcile-unrealized-casts",
+    ],
+)
+
+# End-to-end JIT execution: lower IR to LLVM dialect, hand to
+# mlir-cpu-runner, FileCheck against the program's stdout.
+mlir_jit_test(
+    name = "jit_test",
+    src = "jit.mlir",
+    calc_opt = ":calc-opt",
+    calc_opt_args = [
+        "--calc-to-arith",
+        "--calc-print-to-llvm",
+        "--convert-arith-to-llvm",
+        "--convert-func-to-llvm",
+        "--reconcile-unrealized-casts",
+    ],
+)
+
+# New for stage 12: parse + print !calc.fixed<int, frac> and the two
+# ops that use it.
+mlir_filecheck_test(
+    name = "fixed_round_trip_test",
+    src = "fixed_round_trip.mlir",
+    mlir_opt = ":calc-opt",
+)
+
+# Verifier coverage: fracBits == 0 and bad total widths must error.
+mlir_verify_diagnostics_test(
+    name = "fixed_verify_test",
+    src = "fixed_verify.mlir",
+    mlir_opt = ":calc-opt",
+)

@@ -56,6 +56,39 @@ def mlir_verify_diagnostics_test(name, src, mlir_opt):
         data = [src, mlir_opt],
     )
 
+def mlir_jit_test(name, src, calc_opt, calc_opt_args = None):
+    """Runs `<calc_opt> [args] src | mlir-cpu-runner | FileCheck src`.
+
+    For end-to-end tests: lower IR all the way to LLVM dialect, JIT it
+    via mlir-cpu-runner, and FileCheck the program's stdout against
+    `// CHECK*` directives in the source file. Used in stage 11.
+
+    Args:
+      name: the test target name.
+      src: a .mlir file containing input IR plus `// CHECK*` directives
+        describing the expected program output.
+      calc_opt: this stage's calc-opt binary.
+      calc_opt_args: pipeline flags for calc-opt (the lowering chain to
+        produce LLVM-dialect IR).
+    """
+    calc_opt_args = calc_opt_args or []
+    native.sh_test(
+        name = name,
+        srcs = ["//common:run_jit.sh"],
+        args = [
+            "$(location {})".format(calc_opt),
+            "$(location @llvm-project//mlir:mlir-cpu-runner)",
+            "$(location @llvm-project//llvm:FileCheck)",
+            "$(location {})".format(src),
+        ] + calc_opt_args,
+        data = [
+            src,
+            calc_opt,
+            "@llvm-project//mlir:mlir-cpu-runner",
+            "@llvm-project//llvm:FileCheck",
+        ],
+    )
+
 def dialect_registered_test(name, calc_opt, dialect_name):
     """Verifies that `<calc_opt> --show-dialects` lists `dialect_name`.
 
