@@ -237,6 +237,12 @@ That output is real LLVM IR text — you could feed it to `llc` or
 
 ## Common mistakes
 
+### Build error: `unknown template name 'CalcPrintToLLVMBase'`
+
+You haven't done **Task 1** yet — without the `def CalcPrintToLLVM :
+Pass<...>` in the `.td`, `CalcPasses.h.inc` has no
+`CalcPrintToLLVMBase` definition. Add the pass declaration and rebuild.
+
 ### "operand type mismatch for operand 0: '!llvm.ptr<array<4 x i8>>' != '!llvm.ptr'"
 
 You're passing the raw `AddressOfOp` result (typed pointer) to

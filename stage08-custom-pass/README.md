@@ -234,15 +234,16 @@ check that you wired up `m_Constant` correctly — that only works
 because `ConstOp` has the `ConstantLike` trait (set in stage 07).
 If you accidentally regressed that, this pattern won't match either.
 
-### Build error: `'CalcStrengthReduceBase' is not a class template`
+### Build error: `unknown template name 'CalcStrengthReduceBase'`
 
-`GEN_PASS_DEF_CALCSTRENGTHREDUCE` must be `#define`d *before*
-`#include "CalcPasses.h.inc"` is pulled in via `CalcPasses.h`. But the
-header is included at the top of the file, which means the
-`GEN_PASS_DEF_*` macro path expects the `.inc` to be re-included.
-Look at the solution: there's a deliberate second include of
-`CalcPasses.h.inc` in the `.cpp` after `#define GEN_PASS_DEF_*`. Same
-file, different macros gate different chunks.
+You haven't done **Task 1** yet — the empty `.td` produces an empty
+`CalcPasses.h.inc`, so `impl::CalcStrengthReduceBase` doesn't exist.
+Add the `def CalcStrengthReduce : Pass<...>` record and rebuild.
+
+(The same error after Task 1 is done would mean the
+`GEN_PASS_DEF_CALCSTRENGTHREDUCE` macro is in the wrong place — it
+must be `#define`d *before* the re-include of `CalcPasses.h.inc` in
+the `.cpp`. The boilerplate already does this correctly.)
 
 ### Build error: `redefinition of CalcStrengthReducePass`
 
